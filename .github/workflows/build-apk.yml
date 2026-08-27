@@ -19,21 +19,32 @@ jobs:
       - name: Find Gradle project
         run: |
           GRADLEW=$(find project -name gradlew -type f | head -n 1)
+
           if [ -z "$GRADLEW" ]; then
-            echo "gradlew not found"
-            find project -maxdepth 3 -type f | head -100
+            echo "ERROR: gradlew not found"
+            find project -maxdepth 4 -type f | head -n 100
             exit 1
           fi
+
+          echo "Gradle wrapper found: $GRADLEW"
+
           chmod +x "$GRADLEW"
-          echo "GRADLEW=$GRADLEW" >> "$GITHUB_ENV"
+
+          PROJECT_DIR=$(dirname "$GRADLEW")
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
       - name: Build APK
         run: |
-          cd "$(dirname "$GRADLEW")"
-          ./gradlew assembleDebug --no-daemon
+          cd "$PROJECT_DIR"
+          ./gradlew assembleDebug --stacktrace
+
+      - name: Find APK
+        run: |
+          find project -type f -name "*.apk" -print
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Dafatery-APK
           path: project/**/build/outputs/apk/**/*.apk
+          if-no-files-found: error
